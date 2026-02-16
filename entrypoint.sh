@@ -48,7 +48,6 @@ smtpd_relay_restrictions = permit_mynetworks, reject_unauth_destination
 smtpd_recipient_restrictions = permit_mynetworks, reject_unauth_destination
 
 # Inbound — no TLS, no auth (legacy device support)
-smtpd_use_tls = no
 smtpd_tls_security_level = none
 smtpd_sasl_auth_enable = no
 
