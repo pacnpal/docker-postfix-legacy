@@ -8,7 +8,6 @@ LABEL org.opencontainers.image.source="https://github.com/pacnpal/docker-postfix
 RUN apk add --no-cache \
     postfix \
     postfix-pcre \
-    postfix-lmdb \
     cyrus-sasl \
     cyrus-sasl-login \
     ca-certificates \
