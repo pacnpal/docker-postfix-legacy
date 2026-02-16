@@ -1,0 +1,53 @@
+# ==========================================================
+# docker-postfix-legacy — Custom main.cf
+#
+# Mount this as /etc/postfix/main.cf.custom to bypass env vars.
+# The entrypoint will copy it to /etc/postfix/main.cf at startup.
+#
+# Inbound:  No auth, no TLS (legacy device support)
+# Outbound: STARTTLS + SASL auth to your relay provider
+# ==========================================================
+
+myhostname = mail.example.com
+mydomain = example.com
+myorigin = $mydomain
+smtp_helo_name = $myhostname
+
+inet_interfaces = all
+inet_protocols = ipv4
+
+relayhost = [smtp.gmail.com]:587
+
+mynetworks = 127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
+smtpd_relay_restrictions = permit_mynetworks, reject_unauth_destination
+smtpd_recipient_restrictions = permit_mynetworks, reject_unauth_destination
+
+# Inbound — no TLS, no auth
+smtpd_use_tls = no
+smtpd_tls_security_level = none
+smtpd_sasl_auth_enable = no
+
+# Outbound — TLS + SASL auth
+smtp_tls_security_level = encrypt
+smtp_tls_wrappermode = no
+smtp_sasl_auth_enable = yes
+smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
+smtp_sasl_security_options = noanonymous
+smtp_sasl_tls_security_options = noanonymous
+
+# Multi-domain (uncomment if needed):
+# sender_dependent_relayhost_maps = hash:/etc/postfix/sender_relay
+# smtp_sender_dependent_authentication = yes
+# smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd, hash:/etc/postfix/sender_sasl_passwd
+
+mydestination =
+local_transport = error:local delivery disabled
+alias_maps = hash:/etc/postfix/aliases
+alias_database = hash:/etc/postfix/aliases
+
+maillog_file = /dev/stdout
+
+compatibility_level = 3.6
+smtputf8_enable = no
+recipient_delimiter = +
+message_size_limit = 52428800

@@ -1,0 +1,24 @@
+# Advanced: Use your own main.cf instead of env vars.
+# Mount it as main.cf.custom — the entrypoint detects it and skips generation.
+
+services:
+  postfix:
+    build: .
+    container_name: postfix-relay
+    restart: unless-stopped
+    ports:
+      - "25:25"
+    environment:
+      - TZ=America/New_York
+    volumes:
+      - ./main.cf:/etc/postfix/main.cf.custom:ro
+      - ./sasl_passwd:/etc/postfix/sasl_passwd:ro
+      # For multi-domain:
+      # - ./sender_relay:/etc/postfix/sender_relay:ro
+      # - ./sender_sasl_passwd:/etc/postfix/sender_sasl_passwd:ro
+    networks:
+      - mail
+
+networks:
+  mail:
+    driver: bridge

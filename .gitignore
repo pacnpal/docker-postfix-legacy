@@ -1,0 +1,7 @@
+sasl_passwd
+sasl_passwd.db
+sender_sasl_passwd
+sender_sasl_passwd.db
+*.db
+.env
+.DS_Store

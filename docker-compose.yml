@@ -1,0 +1,27 @@
+services:
+  postfix:
+    build: .
+    # Or use the prebuilt image:
+    # image: talorhammonddev/postfix-legacy:latest
+    container_name: postfix-relay
+    restart: unless-stopped
+    ports:
+      - "25:25"
+    environment:
+      - TZ=America/New_York
+      - SMTP_HOSTNAME=mail.example.com
+      - SMTP_DOMAIN=example.com
+      - SMTP_RELAY_HOST=smtp.gmail.com
+      - SMTP_RELAY_PORT=587
+      - SMTP_USERNAME=you@gmail.com
+      - SMTP_PASSWORD=your-app-password
+      # Optional:
+      # - SMTP_NETWORKS=127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16
+      # - SMTP_OUTBOUND_TLS=encrypt
+      # - SMTP_MESSAGE_SIZE=52428800
+    networks:
+      - mail
+
+networks:
+  mail:
+    driver: bridge
