@@ -2,7 +2,7 @@ services:
   postfix:
     build: .
     # Or use the prebuilt image:
-    # image: talorhammonddev/postfix-legacy:latest
+    # image: pacnpal/postfix-legacy:latest
     container_name: postfix-relay
     restart: unless-stopped
     ports:

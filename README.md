@@ -17,7 +17,7 @@ Built for printers, scanners, HVAC controllers, NAS boxes, security cameras, and
 # docker-compose.yml
 services:
   postfix:
-    image: talorhammonddev/postfix-legacy:latest
+    image: pacnpal/postfix-legacy:latest
     container_name: postfix-relay
     restart: unless-stopped
     ports:

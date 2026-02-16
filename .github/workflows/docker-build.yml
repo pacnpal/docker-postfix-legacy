@@ -8,7 +8,7 @@ on:
     branches: [main]
 
 env:
-  DOCKERHUB_REPO: talorhammonddev/postfix-legacy
+  DOCKERHUB_REPO: pacnpal/postfix-legacy
   GHCR_REPO: ghcr.io/pacnpal/docker-postfix-legacy
 
 jobs:
