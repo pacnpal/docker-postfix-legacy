@@ -6,7 +6,7 @@ services:
     container_name: postfix-relay
     restart: unless-stopped
     ports:
-      - "25:25"
+      - "${SMTP_LISTEN_PORT:-25}:${SMTP_LISTEN_PORT:-25}"
     environment:
       - TZ=America/New_York
       - SMTP_HOSTNAME=mail.example.com

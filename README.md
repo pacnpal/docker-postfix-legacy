@@ -48,6 +48,7 @@ That's it.
 | `SMTP_RELAY_PORT` | `587` | Provider's SMTP port |
 | `SMTP_USERNAME` | *(required)* | Relay auth username |
 | `SMTP_PASSWORD` | *(required)* | Relay auth password |
+| `SMTP_LISTEN_PORT` | `25` | Local SMTP listen port |
 | `SMTP_NETWORKS` | `127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16` | Trusted networks (RFC1918) |
 | `SMTP_OUTBOUND_TLS` | `encrypt` | Outbound TLS level (`encrypt`, `may`, `none`) |
 | `SMTP_MESSAGE_SIZE` | `52428800` | Max message size in bytes (50MB) |
