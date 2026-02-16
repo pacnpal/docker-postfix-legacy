@@ -85,7 +85,8 @@ fi
 if [ -f /etc/postfix/sasl_passwd ]; then
     echo "# Hashing sasl_passwd"
     postmap /etc/postfix/sasl_passwd
-    chmod 600 /etc/postfix/sasl_passwd /etc/postfix/sasl_passwd.db
+    chmod 600 /etc/postfix/sasl_passwd
+    [ -f /etc/postfix/sasl_passwd.db ] && chmod 600 /etc/postfix/sasl_passwd.db
 else
     echo "# WARNING: No sasl_passwd — outbound auth will not work"
 fi
@@ -98,7 +99,8 @@ fi
 if [ -f /etc/postfix/sender_sasl_passwd ]; then
     echo "# Hashing sender_sasl_passwd"
     postmap /etc/postfix/sender_sasl_passwd
-    chmod 600 /etc/postfix/sender_sasl_passwd /etc/postfix/sender_sasl_passwd.db
+    chmod 600 /etc/postfix/sender_sasl_passwd
+    [ -f /etc/postfix/sender_sasl_passwd.db ] && chmod 600 /etc/postfix/sender_sasl_passwd.db
 fi
 
 # ---- Configure listen port ----
