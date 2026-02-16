@@ -5,6 +5,14 @@ echo "###################################"
 echo "# docker-postfix-legacy starting  #"
 echo "###################################"
 
+# ---- Compatibility aliases (drop-in for other postfix-relay containers) ----
+SMTP_RELAY_HOST="${SMTP_RELAY_HOST:-$RELAY_HOST}"
+SMTP_RELAY_PORT="${SMTP_RELAY_PORT:-$RELAY_PORT}"
+SMTP_USERNAME="${SMTP_USERNAME:-$RELAY_USER}"
+SMTP_PASSWORD="${SMTP_PASSWORD:-$RELAY_PASS}"
+SMTP_DOMAIN="${SMTP_DOMAIN:-$MYORIGIN}"
+SMTP_NETWORKS="${SMTP_NETWORKS:-$MYNETWORKS}"
+
 # ---- Timezone ----
 if [ -n "$TZ" ]; then
     echo "# Timezone: $TZ"
@@ -69,6 +77,14 @@ EOF
     if [ -n "$SMTP_RELAY_HOST" ]; then
         echo "relayhost = [${SMTP_RELAY_HOST}]:${SMTP_RELAY_PORT}" >> /etc/postfix/main.cf
     fi
+
+    # Add sender rewriting if FROMADDRESS is set
+    if [ -n "$FROMADDRESS" ]; then
+        echo "# Configuring sender rewriting: ${FROMADDRESS}"
+        echo "smtp_generic_maps = hash:/etc/postfix/generic" >> /etc/postfix/main.cf
+        echo "/.+/ ${FROMADDRESS}" > /etc/postfix/generic
+        postmap /etc/postfix/generic
+    fi
 else
     echo "# Using custom mounted main.cf"
     cp /etc/postfix/main.cf.custom /etc/postfix/main.cf
@@ -112,6 +128,23 @@ fi
 
 # Rebuild aliases
 postalias /etc/postfix/aliases 2>/dev/null || true
+
+# ---- Send test email after startup (background) ----
+if [ -n "$TEST_EMAIL" ]; then
+    (
+        sleep 3
+        echo "# Sending test email to ${TEST_EMAIL}"
+        FROM="${FROMADDRESS:-postfix-legacy@${SMTP_DOMAIN:-localdomain}}"
+        echo "Subject: docker-postfix-legacy test
+From: ${FROM}
+To: ${TEST_EMAIL}
+
+This is a test email from docker-postfix-legacy.
+Sent at: $(date)" | sendmail -f "${FROM}" "$TEST_EMAIL" && \
+            echo "# Test email queued for ${TEST_EMAIL}" || \
+            echo "# WARNING: Failed to queue test email"
+    ) &
+fi
 
 echo "# Starting Postfix in foreground"
 exec postfix start-fg

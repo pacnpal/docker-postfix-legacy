@@ -52,7 +52,22 @@ That's it.
 | `SMTP_NETWORKS` | `127.0.0.0/8, 10.0.0.0/8, 172.16.0.0/12, 192.168.0.0/16` | Trusted networks (RFC1918) |
 | `SMTP_OUTBOUND_TLS` | `encrypt` | Outbound TLS level (`encrypt`, `may`, `none`) |
 | `SMTP_MESSAGE_SIZE` | `52428800` | Max message size in bytes (50MB) |
+| `FROMADDRESS` | *(none)* | Rewrite all sender addresses to this value |
+| `TEST_EMAIL` | *(none)* | Send a test email to this address on startup |
 | `TZ` | *(none)* | Container timezone |
+
+### Drop-in Compatibility
+
+If you're migrating from another postfix-relay container, these aliases are also supported:
+
+| Alias | Maps to |
+|---|---|
+| `RELAY_HOST` | `SMTP_RELAY_HOST` |
+| `RELAY_PORT` | `SMTP_RELAY_PORT` |
+| `RELAY_USER` | `SMTP_USERNAME` |
+| `RELAY_PASS` | `SMTP_PASSWORD` |
+| `MYORIGIN` | `SMTP_DOMAIN` |
+| `MYNETWORKS` | `SMTP_NETWORKS` |
 
 ## Provider Quick Reference
 
