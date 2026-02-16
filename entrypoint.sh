@@ -55,14 +55,14 @@ smtpd_sasl_auth_enable = no
 smtp_tls_security_level = ${SMTP_OUTBOUND_TLS}
 smtp_tls_wrappermode = no
 smtp_sasl_auth_enable = yes
-smtp_sasl_password_maps = hash:/etc/postfix/sasl_passwd
+smtp_sasl_password_maps = lmdb:/etc/postfix/sasl_passwd
 smtp_sasl_security_options = noanonymous
 smtp_sasl_tls_security_options = noanonymous
 
 mydestination =
 local_transport = error:local delivery disabled
-alias_maps = hash:/etc/postfix/aliases
-alias_database = hash:/etc/postfix/aliases
+alias_maps = lmdb:/etc/postfix/aliases
+alias_database = lmdb:/etc/postfix/aliases
 
 maillog_file = /dev/stdout
 
@@ -80,9 +80,9 @@ EOF
     # Add sender rewriting if FROMADDRESS is set
     if [ -n "$FROMADDRESS" ]; then
         echo "# Configuring sender rewriting: ${FROMADDRESS}"
-        echo "smtp_generic_maps = hash:/etc/postfix/generic" >> /etc/postfix/main.cf
+        echo "smtp_generic_maps = lmdb:/etc/postfix/generic" >> /etc/postfix/main.cf
         echo "/.+/ ${FROMADDRESS}" > /etc/postfix/generic
-        postmap /etc/postfix/generic
+        postmap lmdb:/etc/postfix/generic
     fi
 else
     echo "# Using custom mounted main.cf"
@@ -99,23 +99,23 @@ fi
 # ---- Hash map files ----
 if [ -f /etc/postfix/sasl_passwd ]; then
     echo "# Hashing sasl_passwd"
-    postmap /etc/postfix/sasl_passwd
+    postmap lmdb:/etc/postfix/sasl_passwd
     chmod 600 /etc/postfix/sasl_passwd
-    [ -f /etc/postfix/sasl_passwd.db ] && chmod 600 /etc/postfix/sasl_passwd.db
+    [ -f /etc/postfix/sasl_passwd.lmdb ] && chmod 600 /etc/postfix/sasl_passwd.lmdb
 else
     echo "# WARNING: No sasl_passwd — outbound auth will not work"
 fi
 
 if [ -f /etc/postfix/sender_relay ]; then
     echo "# Hashing sender_relay"
-    postmap /etc/postfix/sender_relay
+    postmap lmdb:/etc/postfix/sender_relay
 fi
 
 if [ -f /etc/postfix/sender_sasl_passwd ]; then
     echo "# Hashing sender_sasl_passwd"
-    postmap /etc/postfix/sender_sasl_passwd
+    postmap lmdb:/etc/postfix/sender_sasl_passwd
     chmod 600 /etc/postfix/sender_sasl_passwd
-    [ -f /etc/postfix/sender_sasl_passwd.db ] && chmod 600 /etc/postfix/sender_sasl_passwd.db
+    [ -f /etc/postfix/sender_sasl_passwd.lmdb ] && chmod 600 /etc/postfix/sender_sasl_passwd.lmdb
 fi
 
 # ---- Configure listen port ----
@@ -126,7 +126,7 @@ if [ "$SMTP_LISTEN_PORT" != "25" ]; then
 fi
 
 # Rebuild aliases
-postalias /etc/postfix/aliases 2>/dev/null || true
+postalias lmdb:/etc/postfix/aliases 2>/dev/null || true
 
 # ---- Send test email after startup (background) ----
 if [ -n "$TEST_EMAIL" ]; then
