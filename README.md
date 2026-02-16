@@ -2,7 +2,7 @@
 
 A minimal Postfix relay for legacy SMTP devices. Accepts plain SMTP (no auth, no TLS) on port 25, relays outbound through your provider with proper authentication.
 
-Built for printers, scanners, HVAC controllers, NAS boxes, security cameras, and anything else that only speaks plain SMTP.
+Built for printers, scanners, HVAC controllers, NAS boxes, security cameras, and anything else that only speaks plain SMTP. Also works great as a relay for vintage computers and retro software — old versions of Outlook, Outlook Express, Eudora, Thunderbird, Fedora, Red Hat, Windows XP/2000, and other systems whose TLS stacks are too outdated to talk to modern mail providers directly.
 
 ```
 ┌──────────────┐    port 25      ┌─────────────────┐    port 587       ┌──────────────┐
