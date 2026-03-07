@@ -102,13 +102,16 @@ EOF
 /^From:\s+(.+)$/    PREPEND Reply-To: $1
 HEADEREOF
 
-        # Step 2: At smtp (outbound) time — replace From: header with FROMADDRESS
-        # Also suppress any existing Reply-To that already equals FROMADDRESS to prevent duplicates
+        # Step 2: At smtp (outbound) time — replace From: header with FROMADDRESS, log both
+        # final headers, and drop any Reply-To that already equals FROMADDRESS (no duplicates)
+        # WARN action logs the matched header value to syslog without modifying the message
         echo "smtp_header_checks = pcre:/etc/postfix/header_checks_from" >> /etc/postfix/main.cf
         printf '/^From:\\s+(.+)$/    REPLACE From: %s\n' "${FROMADDRESS}" > /etc/postfix/header_checks_from
+        printf '/^From:\\s+%s\\s*$/    WARN outbound From: %s\n' "${FROMADDRESS}" "${FROMADDRESS}" >> /etc/postfix/header_checks_from
         printf '/^Reply-To:\\s+%s\\s*$/    IGNORE\n' "${FROMADDRESS}" >> /etc/postfix/header_checks_from
+        printf '/^Reply-To:\\s+(.+)$/    WARN outbound Reply-To: $1\n' >> /etc/postfix/header_checks_from
 
-        echo "# Header rewriting configured"
+        echo "# Header rewriting and logging configured"
     fi
 else
     echo "# Using custom mounted main.cf"
