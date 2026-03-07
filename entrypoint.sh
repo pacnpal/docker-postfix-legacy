@@ -44,12 +44,21 @@ inet_interfaces = all
 inet_protocols = ipv4
 
 mynetworks = ${SMTP_NETWORKS}
-smtpd_relay_restrictions = permit_mynetworks, reject_unauth_destination
-smtpd_recipient_restrictions = permit_mynetworks, reject_unauth_destination
 
-# Inbound — no TLS, no auth (legacy device support)
+# Inbound: auth advertised but never required
+# Legacy devices relay via mynetworks (no auth needed)
+# Modern clients (Vaultwarden, etc.) can auth with PLAIN or LOGIN
 smtpd_tls_security_level = none
-smtpd_sasl_auth_enable = no
+smtpd_sasl_auth_enable = yes
+smtpd_sasl_type = cyrus
+smtpd_sasl_security_options = noanonymous
+smtpd_sasl_tls_security_options = noanonymous
+broken_sasl_auth_clients = yes
+
+# permit_sasl_authenticated first so authed clients are always allowed;
+# permit_mynetworks covers legacy devices that send no auth at all
+smtpd_relay_restrictions = permit_sasl_authenticated, permit_mynetworks, reject_unauth_destination
+smtpd_recipient_restrictions = permit_sasl_authenticated, permit_mynetworks, reject_unauth_destination
 
 # Outbound — TLS + SASL auth to relay provider
 smtp_tls_security_level = ${SMTP_OUTBOUND_TLS}
@@ -80,9 +89,26 @@ EOF
     # Add sender rewriting if FROMADDRESS is set
     if [ -n "$FROMADDRESS" ]; then
         echo "# Configuring sender rewriting: ${FROMADDRESS}"
+
+        # Rewrite envelope sender
         echo "smtp_generic_maps = lmdb:/etc/postfix/generic" >> /etc/postfix/main.cf
-        echo "/.+/ ${FROMADDRESS}" > /etc/postfix/generic
+        printf '/.+/ %s\n' "${FROMADDRESS}" > /etc/postfix/generic
         postmap lmdb:/etc/postfix/generic
+
+        # Step 1: At cleanup (ingest) time — capture original From: and prepend Reply-To:
+        # This runs BEFORE smtp_header_checks so it sees the original From address
+        echo "header_checks = pcre:/etc/postfix/header_checks_replyto" >> /etc/postfix/main.cf
+        cat > /etc/postfix/header_checks_replyto <<'HEADEREOF'
+/^From:\s+(.+)$/    PREPEND Reply-To: $1
+HEADEREOF
+
+        # Step 2: At smtp (outbound) time — replace From: header with FROMADDRESS
+        # Also suppress any existing Reply-To that already equals FROMADDRESS to prevent duplicates
+        echo "smtp_header_checks = pcre:/etc/postfix/header_checks_from" >> /etc/postfix/main.cf
+        printf '/^From:\\s+(.+)$/    REPLACE From: %s\n' "${FROMADDRESS}" > /etc/postfix/header_checks_from
+        printf '/^Reply-To:\\s+%s\\s*$/    IGNORE\n' "${FROMADDRESS}" >> /etc/postfix/header_checks_from
+
+        echo "# Header rewriting configured"
     fi
 else
     echo "# Using custom mounted main.cf"
@@ -94,6 +120,28 @@ if [ ! -f /etc/postfix/sasl_passwd ] && [ -n "$SMTP_RELAY_HOST" ] && [ -n "$SMTP
     echo "# Generating sasl_passwd from environment variables"
     SMTP_PASSWORD="${SMTP_PASSWORD:-}"
     echo "[${SMTP_RELAY_HOST}]:${SMTP_RELAY_PORT} ${SMTP_USERNAME}:${SMTP_PASSWORD}" > /etc/postfix/sasl_passwd
+fi
+
+# ---- Configure inbound SASL auth ----
+# SMTP_AUTH_USERNAME / SMTP_AUTH_PASSWORD: credentials for clients connecting TO this relay
+# (e.g. Vaultwarden, Gitea, Nextcloud). Separate from outbound relay credentials.
+# Supports PLAIN and LOGIN — safe for internal use since this relay is not internet-facing.
+# If not set, auth is still advertised but only mynetworks clients can relay (legacy behavior).
+mkdir -p /etc/sasl2
+cat > /etc/sasl2/smtpd.conf <<'SASLEOF'
+pwcheck_method: auxprop
+auxprop_plugin: sasldb
+mech_list: PLAIN LOGIN
+SASLEOF
+
+if [ -n "$SMTP_AUTH_USERNAME" ] && [ -n "$SMTP_AUTH_PASSWORD" ]; then
+    echo "# Configuring inbound SASL user: ${SMTP_AUTH_USERNAME}"
+    echo "${SMTP_AUTH_PASSWORD}" | saslpasswd2 -p -c -u "${SMTP_HOSTNAME:-localhost}" "${SMTP_AUTH_USERNAME}"
+    chown postfix:postfix /etc/sasldb2
+    chmod 640 /etc/sasldb2
+    echo "# Inbound SASL auth configured for ${SMTP_AUTH_USERNAME}"
+else
+    echo "# No SMTP_AUTH_USERNAME set — auth advertised, mynetworks relay only"
 fi
 
 # ---- Hash map files ----
@@ -134,12 +182,8 @@ if [ -n "$TEST_EMAIL" ]; then
         sleep 3
         echo "# Sending test email to ${TEST_EMAIL}"
         FROM="${FROMADDRESS:-postfix-legacy@${SMTP_DOMAIN:-localdomain}}"
-        echo "Subject: docker-postfix-legacy test
-From: ${FROM}
-To: ${TEST_EMAIL}
-
-This is a test email from docker-postfix-legacy.
-Sent at: $(date)" | sendmail -f "${FROM}" "$TEST_EMAIL" && \
+        printf 'Subject: docker-postfix-legacy test\nFrom: %s\nTo: %s\n\nThis is a test email from docker-postfix-legacy.\nSent at: %s\n' \
+            "${FROM}" "${TEST_EMAIL}" "$(date)" | sendmail -f "${FROM}" "${TEST_EMAIL}" && \
             echo "# Test email queued for ${TEST_EMAIL}" || \
             echo "# WARNING: Failed to queue test email"
     ) &
